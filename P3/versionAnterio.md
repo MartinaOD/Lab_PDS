@@ -1,0 +1,401 @@
+# PRÁCTICA 3: FILTROS DIGITALES FIR
+
+Antes de comenzar la práctica, en nuestro fichero de Matlab cargamos las variables que se nos proporcionan en Moodle:
+
+```matlab
+
+load('PDS_P3_3A_LE2_G4.mat') % Cargo las variables
+
+```
+
+<details>
+<summary><strong>FILTRADO DE SEÑALES</strong></summary>
+---
+
+En esta primera parte se realizará el filtrado de la señal x(t) que cargamos anteriormente.
+Este filtrado se realizará mediante tres técnicas distintas:
+
+**1º)** Aplicando la ecuación teórica de la convolución lineal (manualmente). Para ello se sigue la siguiente fórmula (donde y[n] es la muestra filtrada, M el orden del filtro y b son los coeficientes del filtro):
+
+<img width="204" height="77" alt="image" src="https://github.com/user-attachments/assets/69fbafb8-5ff4-4212-bf67-65db2de3eeee" />
+
+**2º)** Aplicando la función de convolución lineal de Matlab.
+
+**3º)** Aplicando la función de filtrado que implementa Matlab.
+
+---
+
+Visto qué se va a hacer en este apartado, se procede a responder a las siguientes preguntas:
+
+**a) Indique la frecuencia de muestreo de la señal facilitada (x(t)).**
+
+```matlab
+Ts = t(2) - t(1); % t(end) - t(end-1) --> si pongo t(end), accedemos a la última posición
+Fs_x = 1/Ts; 
+disp(Fs_x); % La frecuencia son 181000 Hz
+```
+
+**b) Filtre la señal x[n] con el filtro FIR facilitado, calculando el resultado (y[n]) manualmente, es decir, calculando el sumatorio indicado anteriormente. Tenga en cuenta que, al principio, las muestras x[n-k] = 0 mientras que n<= k, con n>=1.**
+
+```matlab
+n = length(x);
+k = length(b); % Número de coeficientes del filtro
+x_long = [zeros(k,1); x]; % En el primer instante, para que no se vaya de rango la X, utilizo el vector auxiliar de ceros
+for i = 1:n
+    y(i) = sum(b.* x_long(i:i+k-1)); % Para implementar el sumatorio. Con multiplicación elemento a elemento 
+end
+```
+
+Quedando una señal y[n] de igual dimensión que x[n], es decir, un vector de 18101 valores.
+
+---> `<ins>`Destacar que:`</ins>` Al ser la señal causal y digital, como para la convolución se tira de las k muestras anteriores y para la primera muestra, no tenemos anteriores, hemos de crear el vector auxiliar para que no dé error.
+
+**c) Filtre la señal x[n] con el filtro FIR facilitado, calculando el resultado (g[n]) mediante la convolución.**
+
+```matlab
+g = conv(b, x); % Introduce un cierto retardo esta función que 'filter' sí elimina (por eso su dimensión es mayor).
+
+```
+
+**d) Filtre la señal x[n] con el filtro FIR facilitado, calculando el resultado (h[n]) mediante la aplicación de filtros en Matlab.**
+
+```matlab
+h = filter(b, 1, x);
+```
+
+**e) Analice, en el dominio del tiempo, las diferencias entre los resultados obtenidos (señales filtradas y[n], g[n] y h[n]), y respecto de la señal original x[n]. Exponga y justifique gráficamente las conclusiones extraídas de dicho análisis. Preste especial atención al vector de tiempo de cada una de las señales.**
+
+```matlab
+figure;
+hold on; grid on;
+
+plot(t, x, 'k', 'LineWidth', 1.2);
+plot(t, y, 'r', 'LineWidth', 1.2);
+
+t_g = (0:length(g)-1) * Ts; 
+plot(t_g, g, 'b', 'LineWidth', 1.2); 
+% Señal con filter() (h) 
+plot(t, h, 'g', 'LineWidth', 1.2); 
+title('EJERCICIO FILTRADO DE SEÑALES'); 
+xlabel('Tiempo (s)'); 
+ylabel('Amplitud'); 
+legend('x[n] original', 'y[n] manual', 'g[n] conv', 'h[n] filter', 'Location', 'best');
+
+hold off;
+```
+
+Obteniendo las siguientes gráficas:
+
+<img width="1920" height="926" alt="untitled" src="https://github.com/user-attachments/assets/94d27b11-4686-4941-83e6-267fa5f2c407" />
+
+Si hacemos zoom, podemos ver algo tal que así:
+
+![retardos](https://github.com/user-attachments/assets/043fe6c7-50fa-4128-a527-f6b01ed3f7c4)
+
+A través de las gráficas concluimos que h[n] y g[n] son exactamente iguales, sin embargo, presentan un retraso con respecto a y[n] (señal que multiplicamos por ceros y que tendrá una muestra más).
+A continuación, se adjunta otra prueba visual que demuestra que h[n] == g[n]:
+
+![g_equals_h](https://github.com/user-attachments/assets/99f1c7a0-d04a-495d-b201-aa89cb527077)
+En la leyenda se ve cómo aparecen las dos señales pero la representación gráfica parece la de una única señal.
+
+Como nota: Las dimensiones de g cuadran con las de la convolución: Lg=Lx+Lb-1 = 18101+101-1
+
+**f) ¿Cuánto es, en milisegundos, el retardo (transitorio) del filtro para cada uno de los casos? ¿Con qué parámetro del filtro tiene relación este retardo?**
+
+```matlab
+% RETARDO transitorio, no de grupo
+Nret = k-1; % En teoría: Ts (original) * length(b)
+Tret_ms = Nret * 1000/Fs_x; % 1000/Fs para tener milisegundos por muestra
+disp(Tret_ms);
+```
+
+El retardo está relacionado con el número de coeficientes k, es decir, con el orden del filtro M. Este retardo depende del número de coeficientes del filtro y del orden (mayor orden -> mayor retardo transitorio). En todas las señales es el mismo.
+
+**g) Analice, en el dominio de la frecuencia, las diferencias entre los resultados obtenidos
+(señales filtradas y[n], g[n] y h[n]), y respecto de la señal original x[n]. Exponga y justifique gráficamente las conclusiones extraídas de dicho análisis. Preste especial atención al rango de frecuencia de cada una de las señales.**
+
+```matlab
+Nfft = 4096;       % FFT grande para ver bien las deltas
+
+% FFT de cada señal (todas con la misma longitud)
+% Normalizar entre la longitud de la señal de entrada
+X = fftshift(fft(x, Nfft))/length(x);
+Y = fftshift(fft(y, Nfft))/length(x);
+G = fftshift(fft(g(1:length(x)), Nfft))/length(x); % recortamos g para comparar
+H = fftshift(fft(h, Nfft))/length(x);
+
+% Eje de frecuencias
+f = (-Nfft/2:Nfft/2-1)*(Fs_x/Nfft);
+
+% Representación
+figure;
+plot(f,abs(X),'k','LineWidth',1.2); hold on
+plot(f,abs(Y),'r','LineWidth',1.2)
+plot(f,abs(G),'b','LineWidth',1.2)
+plot(f,abs(H),'g','LineWidth',1.2)
+
+grid on;
+xlim([-Fs_x/2 Fs_x/2]);   % solo la parte positiva
+legend('X[n] original', 'y[n] manual', 'g[n] = conv', 'h[n] = filter');
+xlabel('Frecuencia (Hz)');
+ylabel('|X(f)| normalizado');
+title('Comparación Espectral Centrada');
+```
+
+Obteniendo la siguiente comparación espectral:
+
+<img width="1920" height="926" alt="otra" src="https://github.com/user-attachments/assets/9c1db730-bee7-4081-a897-04c40cdcbe46" />
+
+En ella se muestra la comparación de los tres tipos de señales filtradas con la señal original x[n]. Podemos ver cómo el filtro resulta en una señal paso banda centrada entorno al 3.
+
+Si decidimos eliminar de la gráfica la señal x[n], podremos comprobar a su vez cómo las tres señales filtradas con distintos métodos son exactamente la misma:
+
+<img width="1920" height="926" alt="y_eq_g_eq_h" src="https://github.com/user-attachments/assets/c5055c15-e36e-4894-ab6a-7b18da55f470" />
+
+</details>
+
+<details>
+<summary><strong>DISEÑO DE FILTROS FIR</strong></summary>
+------------------------------
+Haremos uso de la herramienta gráfica Filter Design & Analysis Tool de Matlab, que permite diseñar todo tipo de filtros. Esta herramienta se abre escribiendo `fdatool` en la ventana de comandos de 
+Matlab.
+
+Para el diseño del filtro, hay que indicar los parámetros y el tipo de filtro, y que pulsar en el botón Design Filter en la parte inferior de la ventana. Para exportar los coeficientes del filtro diseñado, que es lo que haremos, hay que ir al menú File -> Export e indicar los valores deseados en la ventana que aparece.
+
+### **a) Diseño del un LPF**
+
+Estas son las caracterísitcas especificadas para el filtro:
+
+<ul>
+<li>Tipo de respuesta: Lowpass</li>
+<li>Método de diseño: FIR – Constrained Equiripple</li>
+<li>Orden del filtro: 100 
+<li>Especificación de frecuencias:</li>
+    <ul>
+    <li>Fs: frecuencia de muestreo (a especificar por el alumno)</li>
+    <li>Especificación: cutoff</li>
+    <li>Fc: 𝑓𝑐𝐿</li>
+    </ul>
+<li>Especificación de magnitudes:</li>
+    <ul>
+    <li>Apass = 0,1 dB</li>
+    <li>Astop = 80 dB</li>
+    </ul>
+</ul>
+
+La frecuencia de corte (𝑓𝑐𝐿) ha de ser tal que atenúe en más de 80 dB los dos armónicos fundamentales de mayor frecuencia de x(t), y altere lo menos posible (menos de 3 dB) el resto de armónicos. Indique la frecuencia de corte (𝑓𝑐𝐿) del filtro diseñado.
+
+```matlab
+clear; close all; clc;
+load('PDS_P3_3A_LE2_G4.mat');
+
+% Comprobación de tamaños
+x = x(:);
+t = t(:);
+
+% Frecuencia de muestreo
+Ts = t(2) - t(1);
+fs = 1/Ts
+N  = length(x);
+
+% Cálculo del espectro de x(t) 
+X = fftshift( abs( fft(x)/N ) );
+f = linspace(-fs/2, fs/2, N);
+
+% PLOT
+figure; hold on; grid on;
+plot(f, X, 'b',  'LineWidth', 1.2);
+xlabel('Frecuencia (Hz)'); ylabel('|X(f)|');
+title('Espectros centrados: X(f)');
+legend('X(f)');
+
+% Por facilitar, usamos parte positiva:
+f_pos = f(f>=0);
+X_pos = X(f>=0);
+
+% Detección de armónicos 
+% Umbral para detectar picos
+umbral = max(X_pos)*0.20;
+
+% Detectamos picos significativos
+[pks, locs] = findpeaks(X_pos, 'MinPeakHeight', umbral);
+
+% Frecuencias de los picos
+f_peaks = f_pos(locs);
+
+% Ordenar de menor a mayor frecuencia
+f_peaks = sort(f_peaks);
+
+% Seleccionar los DOS de mayor frecuencia
+f_h1 = f_peaks(end);       % mayor frecuencia
+f_h2 = f_peaks(end-1);     % segunda mayor
+
+fprintf("Armónicos más altos detectados:\n");
+fprintf("   f_h2 = %.2f Hz\n", f_h2);
+fprintf("   f_h1 = %.2f Hz\n", f_h1);
+
+% Cálculo automático de la frecuencia de corte fcL (se debe colocar justo antes)
+% Para no alterar el resto, colocamos fcL un poco por debajo de f_h2:
+fcL = 0.98 * f_h2;   % un 2% antes para garantizar atenuación 80 dB
+
+fprintf("\nFrecuencia de corte seleccionada:\n");
+fprintf("   fcL = %.2f Hz\n", fcL);
+
+% Diseño del filtro equiripple paso bajo
+% A tener en cuenta: lo haremos con fdatool, pero esto es para poder representar su módulo y fase
+% Se pedía:
+%   - Método: Constrained Equiripple
+%   - Orden: 100
+%   - Apass = 0.1 dB  (paso banda)
+%   - Astop = 80 dB   (rechazo)
+
+Fp = fcL/fs;   % Normalización
+Ap = 0.1;
+As = 80;
+orden = 100;
+
+% Diseño FIR Equiripple
+b_low = firpm(orden, [0 Fp Fp+0.02 1], [1 1 0 0], [Ap As]);
+
+% Visualización del filtro
+
+figure;
+freqz(b_low,1,2048,fs);
+title('Filtro paso bajo FIR diseñado (Equiripple, orden 100)');
+```
+
+Una vez obtenidas la fs y fcl, sustituimos en el menú de diseño de filtro:
+[PEGAR IMAGEN AQUI]
+
+### **c) Diseño de un HPF (Filtro Paso Alto)**
+
+Para el diseño del filtro paso alto, se han especificado las siguientes características:
+
+* Tipo de respuesta: Highpass (Paso Alto).
+* Método de diseño: FIR – Constrained Equiripple.
+* Orden del filtro: 100.
+* Especificación de frecuencias: Cutoff (f`<sub>`cH`</sub>`).
+* Especificación de magnitudes: A`<sub>`stop`</sub>` = 80 dB, A`<sub>`pass`</sub>` = 0,1 dB.
+
+ La frecuencia de corte (f`<sub>`cH`</sub>`) debe ser seleccionada de forma que atenúe la componente continua y los dos primeros armónicos fundamentales de menor frecuencia de x(t), situados en 7.200 Hz y 18.000 Hz, intentando no alterar el resto de la señal.
+
+ Primero, calculamos la frecuencia de muestreo real y visualizamos el espectro para identificar los armónicos:
+
+```
+% Cálculo de la frecuencia de muestreo real (fs)
+fs = 1 / (t(2) - t(1)); 
+
+% Cálculo del espectro (FFT) para identificar armónicos
+L = length(x);
+X = fft(x) / L;
+X_mag = abs(fftshift(X));
+f = linspace(-fs/2, fs/2, L);
+
+% Representación para identificación
+figure;
+plot(f, X_mag, 'LineWidth', 1.5);
+grid on;
+xlim([0, 40000]); % Zoom en los primeros armónicos
+xlabel('Frecuencia (Hz)');
+ylabel('Magnitud');
+title('Identificación de armónicos para el filtro Paso Alto');
+```
+
+ Tras analizar la gráfica, se han seleccionado los siguientes valores para configurar en la herramienta fdatool:
+
+* Frecuencia stop (Fstop): 20.000 Hz.
+* Frecuencia pass (Fpass): 26.000 Hz.
+
+Con esta configuración, nos aseguramos de que el armónico de 18 kHz caiga dentro de la banda de parada (atenuado > 80 dB) y el siguiente armónico significativo quede en la banda de paso.
+
+---
+
+### d) Justificación del diseño
+
+El diseño del filtro paso alto se considera correcto por los siguientes motivos:
+
+* Banda de parada: Se ha establecido una frecuencia de parada (F `<sub>`stop `</sub>`) de 20.000 Hz. Como los dos primeros armónicos están en 7.200 Hz y 18.000 Hz, ambos reciben la atenuación de 80 dB requerida.
+* Banda de paso: La frecuencia de paso (F `<sub>`pass `</sub>`) se ha fijado en 26.000 Hz. El tercer armónico (28.800 Hz) y los sucesivos entran en la banda de paso con una alteración mínima (0,1 dB de rizado).
+* Resultado visual: En la comparativa espectral se observa la eliminación de los picos en bajas frecuencias, mientras que las altas frecuencias permanecen intactas.
+
+```
+% Filtrado de la señal (bk_alto son los coeficientes exportados de fdatool)
+g_alto = filter(bk_alto, 1, x); 
+
+% Cálculo del espectro de la señal filtrada
+G = fft(g_alto) / length(g_alto);
+G_mag = abs(fftshift(G));
+
+% Gráfica de comparación
+figure;
+subplot(2,1,1);
+plot(f, X_mag); 
+title('Espectro Señal Original x[n]');
+ylabel('Magnitud'); grid on; xlim([0 40000]);
+
+subplot(2,1,2);
+plot(f, G_mag, 'r');
+title('Espectro Señal Filtrada g[n] (Paso Alto)');
+xlabel('Frecuencia (Hz)'); ylabel('Magnitud'); grid on; xlim([0 40000]);
+```
+
+`</details>`
+
+### **ANÁLISIS DE FILTROS**
+
+## SUPERPOSICIÓN
+
+En este apartado analizamos el efecto de encadenar filtros (filtrado en cascada).
+
+### **a) Obtención de y[n] mediante filtrado Paso Bajo**
+
+Utilizamos el filtro paso bajo diseñado anteriormente para filtrar la señal original x(t).
+
+```
+% Filtramos la señal original x con el LPF
+y = filter(LPF_COEF, 1, x); 
+
+% Cálculo de espectros
+Y_mag = abs(fftshift(fft(y)/L));
+
+figure('Name', 'Apartado A: Filtrado Paso Bajo');
+subplot(2,1,1);
+plot(f, X_mag); title('Espectro Señal Original x[n]');
+ylabel('Mag'); grid on; xlim([0 fs/2]);
+subplot(2,1,2);
+plot(f, Y_mag, 'g'); title('Espectro Señal Filtrada y[n] (Resultado Paso Bajo)');
+xlabel('Frecuencia (Hz)'); ylabel('Mag'); grid on; xlim([0 fs/2]);
+```
+
+### **b) Obtención de g[n] mediante filtrado Paso Alto de y[n]**
+
+ Ahora, aplicamos el filtro paso alto sobre la señal y[n] resultante. Al combinar ambos, el efecto resultante es el de un filtro Paso Banda.
+
+```
+% Filtramos la señal 'y' (ya filtrada en paso bajo) con el filtro paso alto
+g_final = filter(bk_alto, 1, y);
+
+% Espectro del resultado final
+G_final_mag = abs(fftshift(fft(g_final)/L));
+
+figure('Name', 'Apartado B: Superposición (Paso Bajo + Paso Alto)');
+subplot(2,1,1);
+plot(f, Y_mag, 'g'); title('Espectro Señal y[n] (Entrada del segundo filtro)');
+ylabel('Mag'); grid on; xlim([0 fs/2]);
+subplot(2,1,2);
+plot(f, G_final_mag, 'r'); title('Espectro Señal Final g[n] (Resultado de la Superposición)');
+xlabel('Frecuencia (Hz)'); ylabel('Mag'); grid on; xlim([0 fs/2]);
+```
+
+Como conclusión, al encadenar un filtro paso bajo y un paso alto, obtenemos una señal final donde se han eliminado tanto las frecuencias por encima de f `<sub>`cL `</sub>` como las frecuencias por debajo de f `<sub>`cH `</sub>`, dejando aislada la banda de frecuencias central.
+
+C) D) E) F)
+
+**ORDEN DEL FILTRO**
+A) B) C) 
+
+</details>
+
+```
+
+```
